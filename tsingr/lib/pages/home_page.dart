@@ -5,6 +5,7 @@ import '../models/question.dart';
 import 'question_detail_page.dart';
 import 'statistics_page.dart';
 import 'category_page.dart';
+import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,6 +47,18 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.filter_list),
             tooltip: '筛选',
             onPressed: _showFilterDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: '设置',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsPage(),
+                ),
+              );
+            },
           ),
         ],
       ),

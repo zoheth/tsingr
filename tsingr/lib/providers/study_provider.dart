@@ -3,6 +3,8 @@ import '../models/question.dart';
 import '../models/study_record.dart';
 import '../services/data_service.dart';
 import '../services/storage_service.dart';
+import '../services/auto_backup_service.dart';
+import '../services/data_migration_service.dart';
 
 class StudyProvider extends ChangeNotifier {
   List<Question> _allQuestions = [];
@@ -104,10 +106,40 @@ class StudyProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 1. 检查并执行数据迁移
+      final migrationResult = await DataMigrationService.checkAndMigrate();
+      if (!migrationResult.success) {
+        debugPrint('数据迁移失败: ${migrationResult.message}');
+      }
+
+      // 2. 加载题目数据
       _allQuestions = await DataService.loadQuestions();
-      _studyRecords = await StorageService.loadRecords();
+
+      // 3. 尝试加载学习记录
+      try {
+        _studyRecords = await StorageService.loadRecords();
+      } catch (e) {
+        debugPrint('加载学习记录失败，尝试从备份恢复: $e');
+
+        // 4. 如果加载失败，尝试从自动备份恢复
+        final backupRecords = await AutoBackupService.restoreLatestBackup();
+        if (backupRecords != null) {
+          _studyRecords = backupRecords;
+          await StorageService.saveRecords(_studyRecords);
+          debugPrint('已从自动备份恢复 ${_studyRecords.length} 条记录');
+        } else {
+          _studyRecords = {};
+          debugPrint('无可用备份，初始化为空记录');
+        }
+      }
+
+      // 5. 执行自动备份（每次启动时）
+      if (_studyRecords.isNotEmpty) {
+        await AutoBackupService.autoBackup(_studyRecords);
+      }
     } catch (e) {
-      debugPrint('加载数据失败: $e');
+      debugPrint('初始化失败: $e');
+      _studyRecords = {};
     }
 
     _isLoading = false;
@@ -133,6 +165,25 @@ class StudyProvider extends ChangeNotifier {
   Future<void> toggleFavorite(int questionId) async {
     final record = getRecord(questionId);
     record.isFavorite = !record.isFavorite;
+    record.lastModified = DateTime.now();
+    _studyRecords[questionId] = record;
+    await StorageService.saveRecord(record);
+    notifyListeners();
+  }
+
+  // 更新作答内容
+  Future<void> updateAnswer(int questionId, String answer) async {
+    final record = getRecord(questionId);
+    record.updateAnswer(answer);
+    _studyRecords[questionId] = record;
+    await StorageService.saveRecord(record);
+    notifyListeners();
+  }
+
+  // 更新笔记内容
+  Future<void> updateNotes(int questionId, String notes) async {
+    final record = getRecord(questionId);
+    record.updateNotes(notes);
     _studyRecords[questionId] = record;
     await StorageService.saveRecord(record);
     notifyListeners();
@@ -199,5 +250,12 @@ class StudyProvider extends ChangeNotifier {
       final record = _studyRecords[q.id];
       return record != null && record.studyCount > 0;
     }).toList();
+  }
+
+  // 清除所有学习记录
+  Future<void> clearAllRecords() async {
+    await StorageService.clearAllRecords();
+    _studyRecords.clear();
+    notifyListeners();
   }
 }

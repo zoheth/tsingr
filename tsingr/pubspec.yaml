@@ -44,6 +44,12 @@ dependencies:
   # Provider for state management
   provider: ^6.1.2
 
+  # File picker for import/export
+  file_picker: ^8.1.6
+
+  # Path provider for file paths
+  path_provider: ^2.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -54,6 +60,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+  flutter_launcher_icons: ^0.14.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -96,3 +104,26 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
+
+  # Android 自适应图标（可选）
+  adaptive_icon_background: "#782F91"
+  adaptive_icon_foreground: "assets/images/icon.png"
+
+  # 其他平台
+  windows:
+    generate: true
+    image_path: "assets/images/icon.png"
+    icon_size: 256
+
+  macos:
+    generate: true
+    image_path: "assets/images/icon.png"
+
+  web:
+    generate: true
+    image_path: "assets/images/icon.png"
